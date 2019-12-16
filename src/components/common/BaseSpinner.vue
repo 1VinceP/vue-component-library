@@ -26,6 +26,8 @@ export default {
 </template>
 
 <style lang="scss" scoped>
+@import "/a-variables";
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -57,7 +59,7 @@ export default {
   height: 24px;
   width: 24px;
   border: 2px solid #fff;
-  border-top: 2px solid var(--blue);
+  border-top: 2px solid $blue;
   border-radius: 50%;
   animation: spin 1.15s cubic-bezier(0.38, 0.27, 0.48, 0.87) infinite;
   // animation: spin 1s linear infinite;

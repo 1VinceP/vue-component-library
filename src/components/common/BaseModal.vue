@@ -1,5 +1,6 @@
 <script>
-import { Button, Input } from './index';
+import Button from './BaseButton.vue';
+import Input from './BaseInput.vue';
 
 export default {
   name: 'base-modal',
@@ -29,10 +30,10 @@ export default {
       ].indexOf(value) >= 0,
     },
     title: String,
-    primary: { type: String, default: 'Ok' },
-    secondary: String,
+    primaryLabel: { type: String, default: 'Ok' },
+    secondaryLabel: String,
     promptTitle: Boolean,
-    top: Boolean,
+    top: Boolean, // places the modal at the top of the screen
     prompt: Boolean,
     loading: Boolean,
     cancel: Boolean,
@@ -63,16 +64,18 @@ export default {
 
       <!-- Not a foobar joke. Its a bar that acts as a footer -->
       <section class="foot bar">
-        <Button sm v-show="!!secondary" @click="$emit('onSecondary')">{{ secondary }}</Button>
+        <Button sm v-show="!!secondaryLabel" @click="$emit('secondary')">
+          {{ secondaryLabel }}
+        </Button>
         <Button
           primary
           sm
           :green="success"
           :orange="warning"
           :red="error"
-          @click="$emit('onPrimary', inputValue)"
+          @click="$emit('primary', inputValue)"
         >
-          {{ primary }}
+          {{ primaryLabel }}
         </Button>
       </section>
     </div>
@@ -81,6 +84,8 @@ export default {
 </template>
 
 <style lang="scss" scoped>
+@import "/a-variables";
+
 .modal-mask {
   height: 100vh;
   width: 100%;
@@ -110,18 +115,18 @@ export default {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border: 2px solid var(--blue);
+  border: 2px solid $blue;
   border-radius: 3px;
   box-shadow: 0 0 6px 1px rgba(0, 0, 0, 0.3);
   visibility: inherit;
   &.success {
-    border-color: var(--green);
+    border-color: $green;
   }
   &.warning {
-    border-color: var(--orange);
+    border-color: $orange;
   }
   &.error {
-    border-color: var(--red);
+    border-color: $red;
   }
   & .bar {
     width: 100%;
@@ -132,12 +137,12 @@ export default {
   }
   & .head {
     height: 40px;
-    font-size: 18px;
-    background: var(--blue);
+    font-size: 14px;
+    background: $blue;
     color: #efefef;
-    &.success { background: var(--green); }
-    &.warning { background: var(--orange); }
-    &.error { background: var(--red); }
+    &.success { background: $green; }
+    &.warning { background: $orange; }
+    &.error { background: $red; }
   }
   & .body {
     display: flex;

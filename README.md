@@ -1,29 +1,5 @@
-# vue-component-library
+This is a minimal component library. To view a live example, clone the project and run `npm run serve`. Open http://localhost:8080 in your browser.
 
-## Project setup
-```
-npm install
-```
+Docs for each component can be found in the component's file (in a README), or on the website.
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Run your unit tests
-```
-npm run test:unit
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+These components are build to be used with the "Nunito" Google font, but should work with most other fonts.

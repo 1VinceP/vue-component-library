@@ -1,7 +1,7 @@
 <script>
 import EyeIcon from 'vue-material-design-icons/Eye.vue';
 import EyeOffIcon from 'vue-material-design-icons/EyeOff.vue';
-import { Button } from './index';
+import Button from './BaseButton.vue';
 
 export default {
   name: 'base-input',
@@ -12,17 +12,18 @@ export default {
 
   computed: {
     computedType() {
-      if (this.type === 'password' && this.maskText) return 'password';
-      else if (this.type === 'password' && !this.maskText) return 'input';
+      let value = this.type;
+      if (this.type === 'password' && this.maskText) value = 'password';
+      else if (this.type === 'password' && !this.maskText) value = 'input';
 
-      return this.type;
+      return value;
     },
   },
 
   mounted() {
     if (this.type === 'password') this.maskText = true;
     if (this.autofocus) {
-      this.$nextTick( () => this.$refs.input.focus() );
+      this.$nextTick(() => this.$refs.input.focus());
     }
   },
 
@@ -32,14 +33,25 @@ export default {
     },
 
     onBlur() {
-      if (!this.errorMessage || !this.errorOnBlur) return false;
-      if (!this.validation) {
-        console.error( 'You must provide a validation function to display an error' );
-        return false;
+      if (!this.errorMessage && !this.validation) {
+        this.showError = false;
+      } else if ((this.errorMessage && this.validation) && !this.liveValidation) {
+        this.showError = !this.validation(this.value);
+      } else if (!this.liveValidation) {
+        console.error('You must provide a validation function and message to display an error');
       }
+    },
+  },
 
-      this.showError = !this.validation(this.value);
-      return null;
+  watch: {
+    value(newValue) {
+      if (this.liveValidation) {
+        if (!this.errorMessage || !this.validation) {
+          console.error('You must provide a validation function and message to display an error');
+        } else {
+          this.showError = !this.validation(newValue);
+        }
+      }
     },
   },
 
@@ -53,16 +65,20 @@ export default {
     placeholder: String,
     type: String,
     value: [String, Number],
-    buttonLabel: { type: String, default: 'Search' },
-    autofocus: Boolean,
-    textarea: Boolean,
-    hasButton: Boolean,
-    green: Boolean,
-    orange: Boolean,
-    red: Boolean,
-    readonly: Boolean,
-    isError: Boolean,
-    errorOnBlur: { type: Boolean, default: true },
+    buttonLabel: { type: String, default: '' },
+    autofocus: { type: Boolean, default: false },
+    textarea: { type: Boolean, default: false },
+    required: { type: Boolean, default: false },
+    green: { type: Boolean, default: false },
+    orange: { type: Boolean, default: false },
+    red: { type: Boolean, default: false },
+    readonly: { type: Boolean, default: false },
+    isError: { type: Boolean, default: false },
+    loading: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
+    // evaluates validation function as user types
+    liveValidation: { type: Boolean, default: false },
+    // will show error if function returns false
     validation: Function,
   },
 };
@@ -72,10 +88,18 @@ export default {
   <div
     :class="[
       'input-container',
-      { hasLabel: !!label, hasError: showError || isError }
+      {
+        hasLabel: !!label,
+        hasError: showError || isError,
+        green,
+        orange,
+        red: red || showError,
+        disabled: disabled || loading,
+        textarea,
+      }
     ]"
   >
-    <div v-show="label" class="label">{{ label }}</div>
+    <div v-show="label" :class="['label', { required }]">{{ label }}</div>
 
     <textarea v-if="textarea"
       :name="name"
@@ -84,9 +108,6 @@ export default {
         {
           hasLabel: !!label,
           hasError: showError || isError,
-          green,
-          orange,
-          red: red || showError,
           readonly,
         },
       ]"
@@ -96,6 +117,7 @@ export default {
       :value="value"
       :placeholder="placeholder"
       :readonly="readonly"
+      :disabled="disabled || loading"
     />
     <input v-else
       ref="input"
@@ -103,13 +125,10 @@ export default {
       :class="[
         'input',
         {
-          hasButton: hasButton || type === 'password',
+          hasButton: buttonLabel,
           hasIcons: type === 'password',
           hasLabel: !!label,
           hasError: showError || isError,
-          green,
-          orange,
-          red: red || showError,
           readonly,
         },
       ]"
@@ -121,116 +140,128 @@ export default {
       :type="computedType"
       :autocomplete="autocomplete || (type === 'password' && 'off')"
       :readonly="readonly"
+      :disabled="disabled || loading"
     />
+
+    <span v-show="(buttonLabel || type === 'password') && !textarea" class="accessories">
+      <Button
+        v-show="buttonLabel && !readonly"
+        link
+        :disabled="disabled"
+        :loading="loading"
+        @click="$emit('button', value)"
+      >
+        {{ buttonLabel }}
+      </Button>
+      <span v-show="type === 'password'" class="icons" @click="changeMask">
+        <EyeOffIcon v-if="maskText" title="Show Password" />
+        <EyeIcon v-else title="Hide Password" />
+      </span>
+    </span>
 
     <div v-show="(showError || isError) && !readonly" class="errorMessage">
       {{ errorMessage }}
     </div>
-
-    <span v-show="hasButton || type === 'password'" class="accessories">
-      <Button v-show="hasButton && !readonly" @click="$emit('click', value)">
-        {{ buttonLabel }}
-      </Button>
-      <span v-show="type === 'password'" class="icons" @click="changeMask">
-        <EyeOffIcon v-if="maskText" />
-        <EyeIcon v-else />
-      </span>
-    </span>
   </div>
 </template>
 
 <style lang="scss" scoped>
+@import "/a-variables";
+
 .input-container {
-  width: 500px;
+  width: 400px;
   max-width: 100%;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   position: relative;
+  border: 1px solid $grey;
+  border-radius: 50px;
   margin: 20px 0;
-  &.hasLabel { margin-top: 30px; }
-  &.hasError { margin-bottom: 30px; }
+  &.textarea { border-radius: 10px; }
+  &.hasLabel {
+    border-top-left-radius: 0;
+    margin-top: 30px;
+  }
+  &.hasError {
+    border: 1px solid $red;
+    border-bottom-right-radius: 0;
+    margin-bottom: 30px;
+  }
+  &.hasLabel.hasError { border-radius: 0 20px; }
+  &.textarea.hasLabel.hasError { border-radius: 0 10px; }
+  &.disabled { background: $grey-disabled; }
+  &.green:focus-within { border: 1px solid $green; }
+  &.orange:focus-within { border: 1px solid $orange; }
+  &.red:focus-within { border: 2px solid $red; }
+  &:focus-within { border: 1px solid $blue; }
+
   & .label {
-    // height: 20px;
     display: flex;
     align-items: center;
     position: absolute;
-    top: -16px;
+    top: -20px;
     left: 0px;
     font-size: 14px;
-    color: var(--navy);
+    color: $navy;
+    &.required::after {
+      content: "*";
+      margin-left: 2px;
+      color: $red;
+    }
   }
+
   & .input {
     height: 40px;
     width: 500px;
     max-width: 100%;
-    border: 1px solid var(--grey);
-    border-radius: 50px;
+    background: transparent;
+    border: none;
     padding: 0 16px;
     font-size: 16px;
     outline: none;
-    &:focus { border: 2px solid var(--blue); }
-    &.hasButton { padding-right: 80px; }
-    &.hasIcons { padding-right: 100px; }
-    &.hasLabel { border-top-left-radius: 0; }
-    &.hasError {
-      border: 1px solid var(--red);
-      border-bottom-right-radius: 0;
-    }
-    &.hasLabel.hasError { border-radius: 0 20px; }
-    &.green:focus { border: 2px solid var(--green); }
-    &.orange:focus { border: 2px solid var(--orange); }
-    &.red:focus { border: 2px solid var(--red); }
+    &.hasButton { padding-right: 0; }
     &.readonly {
       border: none !important;
       cursor: default;
     }
   }
+
   & .textarea {
     height: 80px;
     width: 500px;
     max-width: 100%;
-    border: 1px solid var(--grey);
-    border-radius: 20px;
+    background: transparent;
+    border: none;
     padding: 4px 8px;
     font-size: 16px;
     outline: none;
-    &:focus { border: 2px solid var(--blue); }
-    &.hasLabel { border-top-left-radius: 0; }
-    &.hasError {
-      border: 1px solid var(--red);
-      border-bottom-right-radius: 0;
-    }
-    &.hasLabel.hasError { border-radius: 0 20px; }
-    &.green:focus { border: 2px solid var(--green); }
-    &.orange:focus { border: 2px solid var(--orange); }
-    &.red:focus { border: 2px solid var(--red); }
     &.readonly {
       border: none !important;
       cursor: default;
     }
   }
+
   & .accessories {
-    height: 100%;
+    height: 90%;
     display: flex;
     align-items: center;
-    position: absolute;
-    right: 0px;
     & .icons {
       padding-top: 4px;
       margin-right: 16px;
       margin-left: -6px;
-      color: var(--grey);
+      color: $grey;
       cursor: pointer;
     }
   }
+
   & .errorMessage {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     position: absolute;
     right: 0px;
-    bottom: -16px;
-    color: var(--red);
+    bottom: -20px;
+    color: $red;
     font-size: 13px;
   }
 }
